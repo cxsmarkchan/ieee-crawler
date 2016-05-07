@@ -3,3 +3,5 @@ venv
 __pycache__
 out/*
 !out/.gitkeep
+db/*
+!db/.gitkeep
