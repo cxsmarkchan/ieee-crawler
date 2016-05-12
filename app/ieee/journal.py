@@ -1,7 +1,7 @@
 import math
 import requests
 from requests import Timeout
-from bs4 import BeautifulSoup
+from pyquery import PyQuery
 from app.models import Article
 from mongoengine import DoesNotExist
 from app import logger
@@ -12,7 +12,7 @@ class JournalCrawler:
 
     def __init__(self, journal_number):
         self.__journal_number = str(journal_number)
-        self.__current_issue_file =\
+        self.__current_issue_file = \
             'out/' + self.__journal_number + '_current_issue.txt'
         self.__early_access_file = \
             'out/' + self.__journal_number + '_early_access.txt'
@@ -54,7 +54,7 @@ class JournalCrawler:
         num_try = 1
         while True:
             try:
-                logger.info('Page 1: Trying No. %d' % num_try)
+                logger.info('Page 1: Trying %d time(s)' % num_try)
                 r = requests.get(url=url, params=payload)
                 break
             except Timeout:
@@ -66,21 +66,19 @@ class JournalCrawler:
         if not r:
             return []
 
-        soup = BeautifulSoup(r.text, 'html.parser')
-
-        number_of_articles = self.__get_number_of_article(soup)
+        query = PyQuery(r.text)
+        number_of_articles = self.__get_number_of_article(query)
 
         numbers = []
 
         for i in range(0, math.ceil(number_of_articles / self.INIT_ARTICLE_PER_PAGE)):
-
             if i > 0:
                 payload['pageNumber'] = i + 1
                 r = None
                 num_try = 1
                 while True:
                     try:
-                        logger.info('Page %d: Trying No. %d' % (i + 1, num_try))
+                        logger.info('Page %d: Trying %d time(s)' % (i + 1, num_try))
                         r = requests.get(url=url, params=payload)
                         break
                     except Timeout:
@@ -91,11 +89,11 @@ class JournalCrawler:
                 del num_try
                 if not r:
                     continue
-                soup = BeautifulSoup(r.text, 'html.parser')
+                query = PyQuery(r.text)
 
-            results = soup.find(id='results-blk').find(name='ul', class_='results')
-            elems = results.find_all(name='li')
-            tmp_numbers = [elem['aria-describedby'].split(' ')[0].split('-')[3]
+            elems = query('#results-blk .results li')
+
+            tmp_numbers = [elem.attrib['aria-describedby'].split(' ')[0].split('-')[3]
                            for elem in elems]
             if skip_exists:
                 for number in tmp_numbers:
@@ -139,13 +137,11 @@ class JournalCrawler:
             del num_try
             if not r:
                 continue
-            soup = BeautifulSoup(r.text, 'html.parser')
+            query = PyQuery(r.text)
 
-            name_tag = soup.find(class_='title').find(name='h1')
-            name = name_tag.string.strip()
+            name = query('.title h1').text().strip()
 
-            abstract_tag = soup.find(class_='article').find(name='p')
-            abstract = str(abstract_tag)[3:-4]
+            abstract = query('.article p').html()
 
             if not abstract:
                 abstract = ''
@@ -173,8 +169,5 @@ class JournalCrawler:
         return articles
 
     @staticmethod
-    def __get_number_of_article(soup):
-        results = soup.find(id='results-blk') \
-            .find(class_='results-display') \
-            .find_all(name='b')
-        return int(results[1].string)
+    def __get_number_of_article(query):
+        return int(query('#results-blk .results-display b:eq(1)').text())
