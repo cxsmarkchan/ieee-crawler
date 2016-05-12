@@ -11,6 +11,14 @@ This is a crawling tool to obtain article information of a certain journal from 
 
 2. Install python 3.x, and pip. (You can use virtualenv if you like it)
 
+3. For linux, install libxml2 and libxslt. For windows, download lxml model from [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml), then type the following codes:
+    ```shell
+    cd /path/to/ieee-crawler
+    # open virtualenv if you like
+    pip install wheel
+    pip install /path/to/lxml-x.x.x.whl
+    ```
+
 3. Type the following codes in the shell
 
     ```shell
