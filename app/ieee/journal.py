@@ -21,34 +21,40 @@ class JournalCrawler:
 
     def get_current_issue(self, to_file=False):
         url = 'http://ieeexplore.ieee.org/xpl/mostRecentIssue.jsp'
-        numbers = self.__get_article_numbers(url)
-        return self.__get_articles(
+        numbers = self.get_article_numbers(url)
+        return self.get_articles(
             numbers,
             self.__current_issue_file if to_file else None
         )
 
     def get_early_access(self, to_file=False):
         url = 'http://ieeexplore.ieee.org/xpl/tocresult.jsp'
-        numbers = self.__get_article_numbers(url)
-        return self.__get_articles(
+        numbers = self.get_article_numbers(url)
+        return self.get_articles(
             numbers,
             self.__early_access_file if to_file else None
         )
 
     def get_new_articles(self, to_file=False):
         url = 'http://ieeexplore.ieee.org/xpl/tocresult.jsp'
-        numbers = self.__get_article_numbers(url, skip_exists=True)
-        return self.__get_articles(
+        numbers = self.get_article_numbers(url, skip_exists=True)
+        return self.get_articles(
             numbers,
             self.__new_article_file if to_file else None
         )
 
-    def __get_article_numbers(self, url, skip_exists=False):
+    def get_article_numbers(self, url, journal_number=None, issue_number=None, skip_exists=False):
+        if not journal_number:
+            journal_number = self.__journal_number
+
         logger.info('Obtaining article numbers')
 
         payload = {
-            'punumber': self.__journal_number
+            'punumber': journal_number
         }
+
+        if issue_number:
+            payload['isnumber'] = issue_number
 
         r = None
         num_try = 1
@@ -109,7 +115,7 @@ class JournalCrawler:
         return numbers
 
     @staticmethod
-    def __get_articles(numbers, filename):
+    def get_articles(numbers, filename=None):
         if filename:
             with open(filename, 'w') as fid:
                 fid.write('')
