@@ -1,3 +1,5 @@
+[![Circle CI](https://circleci.com/gh/cxsmarkchan/ieee-crawler/tree/master.svg?style=svg&circle-token=a501498e163a1da45481db45f679d236ea878ba5)](https://circleci.com/gh/cxsmarkchan/ieee-crawler/tree/master)
+
 This is a crawling tool to obtain article information of a certain journal from www.ieeexplore.org
 
 # Installation
