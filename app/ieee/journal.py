@@ -29,7 +29,8 @@ class JournalCrawler:
 
     def get_early_access(self, to_file=False):
         url = 'http://ieeexplore.ieee.org/xpl/tocresult.jsp'
-        numbers = self.get_article_numbers(url)
+        issue_number = self.get_early_access_number()
+        numbers = self.get_article_numbers(url, issue_number=issue_number)
         return self.get_articles(
             numbers,
             self.__early_access_file if to_file else None
@@ -43,9 +44,19 @@ class JournalCrawler:
             self.__new_article_file if to_file else None
         )
 
-    def get_article_numbers(self, url, journal_number=None, issue_number=None, skip_exists=False):
-        if not journal_number:
-            journal_number = self.__journal_number
+    def get_early_access_number(self):
+        url = 'http://ieeexplore.ieee.org/xpl/RecentIssue.jsp'
+        payload = {
+            'punumber': self.__journal_number
+        }
+        r = requests.get(url, params=payload)
+
+        query = PyQuery(r.text)
+        issue_url = query('#nav-article li:eq(2) a').attr('href')
+        return issue_url.split('=')[1]
+
+    def get_article_numbers(self, url, issue_number=None, skip_exists=False):
+        journal_number = self.__journal_number
 
         logger.info('Obtaining article numbers')
 

@@ -7,7 +7,7 @@ class TestJournalCrawler(TestCase):
         # IEEE Transactions on Smart Grid
         self.__crawler = JournalCrawler(5165411)
 
-    def test_get_article(self):
+    def test_get_article_numbers(self):
         url = 'http://ieeexplore.ieee.org/xpl/tocresult.jsp'
         issue_number = 7361791
         numbers = self.__crawler.get_article_numbers(
@@ -32,3 +32,7 @@ class TestJournalCrawler(TestCase):
                 '7361798', '7361801'
             ]
         )
+
+    def test_get_early_access_number(self):
+        self.assertEqual(self.__crawler.get_early_access_number(),
+                         '5446437')
