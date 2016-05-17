@@ -1,4 +1,5 @@
 import requests
+import bibtexparser
 
 
 class CitationLoader:
@@ -30,3 +31,11 @@ class CitationLoader:
 
         r = requests.post(url=url, headers=headers, data=data)
         return r.text
+
+    def get_bibtex(self, html=None):
+        if not html:
+            html = self.get_citations_html()
+        bibtex_str = html.replace('<br>', '').replace('@', '\n@')
+        return bibtexparser.loads(bibtex_str).entries
+
+
