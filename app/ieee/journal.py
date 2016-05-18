@@ -4,7 +4,9 @@ from requests import Timeout
 from pyquery import PyQuery
 from app.models import Article
 from mongoengine import DoesNotExist
+from pymongo.errors import ServerSelectionTimeoutError
 from app import logger
+from app.ieee.citation import CitationLoader
 
 
 class JournalCrawler:
@@ -131,49 +133,31 @@ class JournalCrawler:
             with open(filename, 'w') as fid:
                 fid.write('')
 
-        url = 'http://ieeexplore.ieee.org/xpl/articleDetails.jsp'
+        citation_loader = CitationLoader(numbers)
+        entries = citation_loader.get_bibtex()
         articles = {}
 
-        for number in numbers:
-            logger.info('Crawling the information of article [%s]' % number)
-
-            r = None
-            num_try = 1
-            while True:
-                try:
-                    logger.info('Trying No. %d' % num_try)
-                    r = requests.get(url=url, params={
-                        'arnumber': number
-                    })
-                    break
-                except Timeout:
-                    num_try += 1
-                    if num_try > 10:
-                        logger.info('Timeout')
-                        break
-            del num_try
-            if not r:
-                continue
-            query = PyQuery(r.text)
-
-            name = query('.title h1').text().strip()
-
-            abstract = query('.article p').html()
-
-            if not abstract:
-                abstract = ''
+        for entry in entries:
+            number = entry['ID']
+            name = entry['title']
+            abstract = entry['abstract']
 
             try:
                 article = Article.objects.get(article_number=number)
                 logger.info('Article [%s] already exists, it will be updated.' % number)
-            except DoesNotExist:
+            except (DoesNotExist, ServerSelectionTimeoutError):
                 article = Article()
                 article.article_number = number
-                logger.info('Article [%s] saved.' % number)
+                logger.info('Article [%s] is a new article.' % number)
+
             article.article_name = name
             article.abstract = abstract
 
-            article.save()
+            try:
+                article.save()
+                logger.info('Article [%s] saved.' % number)
+            except ServerSelectionTimeoutError:
+                logger.info('Cannot connect to database, Article [%s] will not be saved.' % number)
             articles[number] = article
 
             if filename:
