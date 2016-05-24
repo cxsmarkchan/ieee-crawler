@@ -139,8 +139,6 @@ class JournalCrawler:
 
         for entry in entries:
             number = entry['ID']
-            name = entry['title']
-            abstract = entry['abstract']
 
             try:
                 article = Article.objects.get(entry_number=number)
@@ -150,8 +148,17 @@ class JournalCrawler:
                 article.entry_number = number
                 logger.info('Article [%s] is a new article.' % number)
 
-            article.title = name
-            article.abstract = abstract
+            article.title = entry['title']
+            article.author = entry['author']
+            article.journal = entry['journal']
+            article.year = entry['year']
+            article.volume = entry['volume']
+            article.number = entry['number']
+            article.pages = entry['pages']
+            article.abstract = entry['abstract']
+            article.keyword = entry['keyword']
+            article.doi = entry['doi']
+            article.issn = entry['issn']
 
             try:
                 article.save()
@@ -162,9 +169,11 @@ class JournalCrawler:
 
             if filename:
                 with open(filename, 'a') as fid:
-                    fid.write('Article Number: %s\n' % number)
-                    fid.write('Article Name: %s\n' % article.title)
+                    fid.write('Entry Number: %s\n' % number)
+                    fid.write('Title: %s\n' % article.title)
+                    fid.write('Author %s\n' % article.author)
                     fid.write('Abstract: %s\n' % article.abstract)
+                    fid.write('Keyword: %s\n' % article.keyword)
                     fid.write('\n')
 
         return articles
