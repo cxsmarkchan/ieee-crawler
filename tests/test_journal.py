@@ -40,7 +40,7 @@ class TestJournalCrawler(TestCase):
     def test_get_articles(self):
         articles = self.__crawler.get_articles(['7399422'])
         self.assertEqual(
-            articles['7399422'].article_name,
+            articles['7399422'].title,
             'Sizing and Analysis of Renewable Energy and Battery Systems in Residential Microgrids'
         )
 

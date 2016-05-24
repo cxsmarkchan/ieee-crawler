@@ -143,14 +143,14 @@ class JournalCrawler:
             abstract = entry['abstract']
 
             try:
-                article = Article.objects.get(article_number=number)
+                article = Article.objects.get(entry_number=number)
                 logger.info('Article [%s] already exists, it will be updated.' % number)
             except (DoesNotExist, ServerSelectionTimeoutError):
                 article = Article()
-                article.article_number = number
+                article.entry_number = number
                 logger.info('Article [%s] is a new article.' % number)
 
-            article.article_name = name
+            article.title = name
             article.abstract = abstract
 
             try:
@@ -163,7 +163,7 @@ class JournalCrawler:
             if filename:
                 with open(filename, 'a') as fid:
                     fid.write('Article Number: %s\n' % number)
-                    fid.write('Article Name: %s\n' % article.article_name)
+                    fid.write('Article Name: %s\n' % article.title)
                     fid.write('Abstract: %s\n' % article.abstract)
                     fid.write('\n')
 
