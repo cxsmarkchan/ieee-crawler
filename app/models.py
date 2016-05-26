@@ -3,6 +3,25 @@ import bibtexparser
 from bibtexparser.bibdatabase import BibDatabase
 
 
+class Journal(Document):
+    entry_number = StringField(required=True)
+    name = StringField(required=True)
+
+    def __str__(self):
+        return str(self.name)
+
+
+class Issue(Document):
+    entry_number = StringField(default=0)
+    year = IntField(required=True)
+    issue_number = IntField(required=True)
+    is_current = BooleanField(default=True)
+    journal_reference = ReferenceField(Journal)
+
+    def __str__(self):
+        return 'Issue ' + str(self.issue_number) + ' / ' + str(self.year)
+
+
 class Article(Document):
     UNVISITED = 0
     VISITED = 1
@@ -42,22 +61,3 @@ class Article(Document):
             'issn': self.issn
         }]
         return bibtexparser.dumps(bib)
-
-
-class Issue(Document):
-    entry_number = StringField(default=0)
-    year = IntField(required=True)
-    issue_number = IntField(required=True)
-    is_current = BooleanField(default=True)
-    journal_reference = ReferenceField()
-
-    def __str__(self):
-        return 'Issue ' + str(self.issue_number) + ' / ' + str(self.year)
-
-
-class Journal(Document):
-    entry_number = StringField(required=True)
-    name = StringField(required=True)
-
-    def __str__(self):
-        return str(self.name)
