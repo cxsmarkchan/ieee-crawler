@@ -1,8 +1,13 @@
+beautifulsoup4==4.4.1
 bibtexparser==0.6.2
 cssselect==0.9.1
+Flask==0.10.1
+itsdangerous==0.24
+Jinja2==2.8
 lxml==3.4.4
+MarkupSafe==0.23
 mongoengine==0.10.6
 pymongo==3.2.2
 pyquery==1.2.13
 requests==2.10.0
-wheel==0.29.0
+Werkzeug==0.11.10
