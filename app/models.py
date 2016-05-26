@@ -1,4 +1,4 @@
-from mongoengine import Document, IntField, StringField
+from mongoengine import Document, IntField, StringField, BooleanField, ReferenceField
 import bibtexparser
 from bibtexparser.bibdatabase import BibDatabase
 
@@ -22,6 +22,7 @@ class Article(Document):
     doi = StringField()
     issn = StringField()
     status = IntField(required=True, default=UNVISITED)
+    issue_reference = ReferenceField(Issue)
 
     def __str__(self):
         bib = BibDatabase()
@@ -42,3 +43,21 @@ class Article(Document):
         }]
         return bibtexparser.dumps(bib)
 
+
+class Issue(Document):
+    entry_number = StringField(default=0)
+    year = IntField(required=True)
+    issue_number = IntField(required=True)
+    is_current = BooleanField(default=True)
+    journal_reference = ReferenceField()
+
+    def __str__(self):
+        return 'Issue ' + str(self.issue_number) + ' / ' + str(self.year)
+
+
+class Journal(Document):
+    entry_number = StringField(required=True)
+    name = StringField(required=True)
+
+    def __str__(self):
+        return str(self.name)
