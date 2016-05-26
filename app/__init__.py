@@ -17,10 +17,6 @@ logger.info('Database connected.')
 
 
 def create_app():
-    # database
-    connect('ieee_crawler')
-    logger.info('Database connected.')
-
     # flask app
     app = Flask(__name__)
 
