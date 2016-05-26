@@ -1,8 +1,9 @@
 import math
 import requests
+import re
 from requests import Timeout
 from pyquery import PyQuery
-from app.models import Article
+from app.models import Journal, Issue, Article
 from mongoengine import DoesNotExist
 from pymongo.errors import ServerSelectionTimeoutError
 from app import logger
@@ -20,6 +21,32 @@ class JournalCrawler:
             'out/' + self.__journal_number + '_early_access.txt'
         self.__new_article_file = \
             'out/' + self.__journal_number + '_new_articles.txt'
+
+        self.__journal = self.get_journal_object(journal_number)
+
+    @staticmethod
+    def get_journal_object(journal_number):
+        '''
+        If the journal exists in database, return the object.
+        Else construct the object in database, and return it.
+        :param journal_number:
+        :return:
+        '''
+        try:
+            journal = Journal.objects.get(entry_number=str(journal_number))
+        except DoesNotExist:
+            journal = Journal()
+            journal.entry_number = str(journal_number)
+            url = 'http://ieeexplore.ieee.org/xpl/RecentIssue.jsp'
+            payload = {
+                'punumber': journal_number
+            }
+            r = requests.get(url, params=payload)
+            query = PyQuery(r.text)
+            journal.name = query('#journal-page-hdr h1').text().strip()
+            journal.save()
+
+        return journal
 
     def get_current_issue(self, to_file=False):
         url = 'http://ieeexplore.ieee.org/xpl/mostRecentIssue.jsp'
@@ -45,6 +72,60 @@ class JournalCrawler:
             numbers,
             self.__new_article_file if to_file else None
         )
+
+    def update_current_issue_information(self):
+        '''
+        check whether the current issue is updated.
+        if updated, update the number of the last issue before current issue.
+        :return: [Year, Issue, Whether Updated]
+        '''
+        url = 'http://ieeexplore.ieee.org/xpl/mostRecentIssue.jsp'
+        payload = {
+            'punumber': self.__journal_number
+        }
+        r = requests.get(url, params=payload)
+
+        query = PyQuery(r.text)
+        text = query('#jrnl-issue-hdr h2').text().strip()
+
+        logger.debug(text)
+        logger.debug(text[-4:])
+        logger.debug(text[6])
+
+        current_year = int(text[-4:])
+        issue_number = int(text[6])
+
+        try:
+            current_issue = Issue.objects.get(
+                journal_reference=self.__journal,
+                is_current=True
+            )
+            if current_issue.year == current_year \
+                    and current_issue.issue_number == issue_number:
+                logger.info('Current issue has not been updated')
+                return current_year, issue_number, False
+            else:
+                logger.info('Current issue need to be updated')
+                query_text = '#pi-%d li:eq(%d) a' % \
+                             (current_issue.year, current_issue.issue_number - 1)
+                logger.debug('Finding url of the past issues via jquery: ' + query_text)
+                url = query(query_text).attr('href')
+                current_issue.entry_number = re.search('(?<=isnumber=)[0-9]+', url).group(0)
+                logger.debug('entry_number:' + current_issue.entry_number)
+                current_issue.is_current = False
+                current_issue.save()
+        except DoesNotExist:
+            logger.info('Current issue does not exist in database')
+            pass
+
+        # does not exist or updated
+        current_issue = Issue()
+        current_issue.year = current_year
+        current_issue.issue_number = issue_number
+        current_issue.journal_reference = self.__journal
+        current_issue.save()
+        logger.info('Current issue updated')
+        return current_year, issue_number, True
 
     def get_early_access_number(self):
         url = 'http://ieeexplore.ieee.org/xpl/RecentIssue.jsp'
@@ -148,17 +229,17 @@ class JournalCrawler:
                 article.entry_number = number
                 logger.info('Article [%s] is a new article.' % number)
 
-            article.title = entry['title']
-            article.author = entry['author']
-            article.journal = entry['journal']
-            article.year = entry['year']
-            article.volume = entry['volume']
-            article.number = entry['number']
-            article.pages = entry['pages']
-            article.abstract = entry['abstract']
-            article.keyword = entry['keyword']
-            article.doi = entry['doi']
-            article.issn = entry['issn']
+            article.title = entry['title'] if 'title' in entry else ''
+            article.author = entry['author'] if 'author' in entry else ''
+            article.journal = entry['journal'] if 'journal' in entry else ''
+            article.year = entry['year'] if 'year' in entry else ''
+            article.volume = entry['volume'] if 'volume' in entry else ''
+            article.number = entry['number'] if 'number' in entry else ''
+            article.pages = entry['pages'] if 'pages' in entry else ''
+            article.abstract = entry['abstract'] if 'abstract' in entry else ''
+            article.keyword = entry['keyword'] if 'keyword' in entry else ''
+            article.doi = entry['doi'] if 'doi' in entry else ''
+            article.issn = entry['issn'] if 'issn' in entry else ''
 
             try:
                 article.save()

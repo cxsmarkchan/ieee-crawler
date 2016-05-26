@@ -4,7 +4,7 @@ from bibtexparser.bibdatabase import BibDatabase
 
 
 class Journal(Document):
-    entry_number = StringField(required=True)
+    entry_number = StringField(required=True, primary_key=True)
     name = StringField(required=True)
 
     def __str__(self):
@@ -12,7 +12,7 @@ class Journal(Document):
 
 
 class Issue(Document):
-    entry_number = StringField(default=0)
+    entry_number = StringField(default='0')
     year = IntField(required=True)
     issue_number = IntField(required=True)
     is_current = BooleanField(default=True)

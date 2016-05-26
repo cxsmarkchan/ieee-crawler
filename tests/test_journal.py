@@ -1,11 +1,45 @@
 from unittest import TestCase
 from app.ieee.journal import JournalCrawler
+from app.models import Issue
 
 
 class TestJournalCrawler(TestCase):
     def setUp(self):
         # IEEE Transactions on Smart Grid
         self.__crawler = JournalCrawler(5165411)
+
+    def test_get_journal_object(self):
+        journal = JournalCrawler.get_journal_object(5165411)
+        self.assertEqual(journal.entry_number, '5165411')
+        self.assertEqual(journal.name, 'IEEE Transactions on Smart Grid')
+
+    def test_update_current_issue_information(self):
+        journal = JournalCrawler.get_journal_object(5165411)
+        issue = Issue()
+        issue.journal_reference = journal
+        issue.issue_number = 2
+        issue.year = 2016
+        issue.save()
+
+        self.__crawler.update_current_issue_information()
+
+        past_issue = Issue.objects.get(
+            journal_reference=journal,
+            year=2016,
+            issue_number=2
+        )
+        current_issue = Issue.objects.get(
+            journal_reference=journal,
+            is_current=True
+        )
+        self.assertEqual(past_issue.is_current, False)
+        self.assertEqual(past_issue.entry_number, '7410169')
+        url = 'http://ieeexplore.ieee.org/xpl/mostRecentIssue.jsp'
+        numbers = self.__crawler.get_article_numbers(url=url)
+        articles = self.__crawler.get_articles(numbers[0:1])
+        for entry in articles:
+            self.assertEqual(current_issue.year, int(articles[entry].year))
+            self.assertEqual(current_issue.issue_number, int(articles[entry].number))
 
     def test_get_article_numbers(self):
         url = 'http://ieeexplore.ieee.org/xpl/tocresult.jsp'
