@@ -4,6 +4,11 @@ from bibtexparser.bibdatabase import BibDatabase
 
 
 class Article(Document):
+    UNVISITED = 0
+    VISITED = 1
+    NEED_FURTHER = 2
+    IMPORTANT = 3
+
     entry_number = IntField(required=True, primary_key=True)
     title = StringField(required=True)
     author = StringField()
@@ -16,6 +21,7 @@ class Article(Document):
     keyword = StringField()
     doi = StringField()
     issn = StringField()
+    status = IntField(required=True, default=UNVISITED)
 
     def __str__(self):
         bib = BibDatabase()
