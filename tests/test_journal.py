@@ -1,53 +1,89 @@
 from unittest import TestCase
-from app.ieee.journal import JournalCrawler
-from app.models import Issue
+from app.ieee.journal import IEEECrawler, JournalCrawler, IssueCrawler, ArticleCrawler
+from app.models import Issue, Article
+
+
+class TestIEEECrawler(TestCase):
+    def test_get_journal(self):
+        journal = IEEECrawler.get_journal(5165411)
+        self.assertEqual(journal.entry_number, '5165411')
+        self.assertEqual(journal.name, 'IEEE Transactions on Smart Grid')
+
+    def test_get_journal_object(self):
+        journal = IEEECrawler.get_journal_object(5165411)
+        self.assertEqual(journal.entry_number, '5165411')
+        self.assertEqual(journal.name, 'IEEE Transactions on Smart Grid')
 
 
 class TestJournalCrawler(TestCase):
     def setUp(self):
-        # IEEE Transactions on Smart Grid
-        self.__crawler = JournalCrawler(5165411)
+        self.__crawler = IEEECrawler.get_journal(5165411)
 
-    def test_get_journal_object(self):
-        journal = JournalCrawler.get_journal_object(5165411)
-        self.assertEqual(journal.entry_number, '5165411')
-        self.assertEqual(journal.name, 'IEEE Transactions on Smart Grid')
-
-    def test_update_current_issue_information(self):
-        journal = JournalCrawler.get_journal_object(5165411)
+        journal = IEEECrawler.get_journal_object(5165411)
         issue = Issue()
         issue.journal_reference = journal
-        issue.issue_number = 2
+        issue.number = 2
         issue.year = 2016
+        issue.status = Issue.CURRENT_ISSUE
         issue.save()
 
-        self.__crawler.update_current_issue_information()
+        issue = Issue()
+        issue.entry_number = '7361791'
+        issue.journal_reference = journal
+        issue.number = 1
+        issue.year = 2016
+        issue.status = Issue.PAST_ISSUE
+        issue.save()
 
-        past_issue = Issue.objects.get(
-            journal_reference=journal,
-            year=2016,
-            issue_number=2
-        )
-        current_issue = Issue.objects.get(
-            journal_reference=journal,
-            is_current=True
-        )
-        self.assertEqual(past_issue.is_current, False)
+    def tearDown(self):
+        journal = IEEECrawler.get_journal_object(5165411)
+        for issue in Issue.objects.filter(journal_reference=journal):
+            issue.delete()
+
+    def test_get_current_issue(self):
+        current_issue = self.__crawler.get_current_issue()
+        past_issue = self.__crawler.get_past_issue(2016, 2)
+
+        self.assertEqual(past_issue.status, Issue.PAST_ISSUE)
         self.assertEqual(past_issue.entry_number, '7410169')
-        url = 'http://ieeexplore.ieee.org/xpl/mostRecentIssue.jsp'
-        numbers = self.__crawler.get_article_numbers(url=url)
-        articles = self.__crawler.get_articles(numbers[0:1])
-        for entry in articles:
-            self.assertEqual(current_issue.year, int(articles[entry].year))
-            self.assertEqual(current_issue.issue_number, int(articles[entry].number))
+        self.assertEqual(past_issue.journal_name, 'IEEE Transactions on Smart Grid')
+        self.assertEqual(past_issue.year, 2016)
+        self.assertEqual(past_issue.number, 2)
 
-    def test_get_article_numbers(self):
-        url = 'http://ieeexplore.ieee.org/xpl/tocresult.jsp'
-        issue_number = 7361791
-        numbers = self.__crawler.get_article_numbers(
-            url=url,
-            issue_number=issue_number
-        )
+        # TODO: use mock to construct response
+        self.assertEqual(current_issue.journal_name, 'IEEE Transactions on Smart Grid')
+        self.assertEqual(current_issue.status, Issue.CURRENT_ISSUE)
+        self.assertEqual(current_issue.entry_number, 'current_5165411')
+        self.assertEqual(current_issue.year, 2016)
+        self.assertEqual(current_issue.number, 3)
+
+    def test_get_past_issue(self):
+        past_issue = self.__crawler.get_past_issue(2016, 1)
+        self.assertEqual(past_issue.status, Issue.PAST_ISSUE)
+        self.assertEqual(past_issue.entry_number, '7361791')
+        self.assertEqual(past_issue.journal_name, 'IEEE Transactions on Smart Grid')
+        self.assertEqual(past_issue.year, 2016)
+        self.assertEqual(past_issue.number, 1)
+
+    def test_get_early_access(self):
+        early_access = self.__crawler.get_early_access()
+        self.assertEqual(early_access.status, Issue.EARLY_ACCESS)
+        self.assertEqual(early_access.entry_number, '5446437')
+        self.assertEqual(early_access.journal_name, 'IEEE Transactions on Smart Grid')
+
+
+class TestIssueCrawler(TestCase):
+    def setUp(self):
+        # IEEE Transactions on Smart Grid
+        self.__crawler = IEEECrawler.get_journal(5165411).get_past_issue(2016, 1)
+        issue = Issue.objects.get(entry_number=self.__crawler.entry_number)
+        for article in Article.objects.filter(issue_reference=issue):
+            article.delete()
+        for article in Article.objects.filter(entry_number='7399422'):
+            article.delete()
+
+    def test_crawl_article_numbers(self):
+        numbers = self.__crawler.crawl_article_numbers()
         self.assertEqual(
             numbers,
             [
@@ -67,12 +103,8 @@ class TestJournalCrawler(TestCase):
             ]
         )
 
-    def test_get_early_access_number(self):
-        self.assertEqual(self.__crawler.get_early_access_number(),
-                         '5446437')
-
-    def test_get_articles(self):
-        articles = self.__crawler.get_articles(['7399422'])
+    def test_crawl_articles(self):
+        articles = self.__crawler.crawl_articles(['7399422'])
         self.assertEqual(
             articles['7399422'].title,
             'Sizing and Analysis of Renewable Energy and Battery Systems in Residential Microgrids'
@@ -118,3 +150,17 @@ class TestJournalCrawler(TestCase):
             '1949-3053'
         )
 
+        article_db = Article.objects.get(entry_number='7399422')
+        self.assertEqual(article_db.entry_number, '7399422')
+        self.assertEqual(article_db.title, articles['7399422'].title)
+        self.assertEqual(article_db.author, articles['7399422'].author)
+        self.assertEqual(article_db.journal, articles['7399422'].journal)
+        self.assertEqual(article_db.year, articles['7399422'].year)
+        self.assertEqual(article_db.volume, articles['7399422'].volume)
+        self.assertEqual(article_db.number, articles['7399422'].number)
+        self.assertEqual(article_db.pages, articles['7399422'].pages)
+        self.assertEqual(article_db.abstract, articles['7399422'].abstract)
+        self.assertEqual(article_db.keyword, articles['7399422'].keyword)
+        self.assertEqual(article_db.doi, articles['7399422'].doi)
+        self.assertEqual(article_db.issn, articles['7399422'].issn)
+        self.assertEqual(article_db.status, Article.UNVISITED)

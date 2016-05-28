@@ -12,11 +12,15 @@ class Journal(Document):
 
 
 class Issue(Document):
+    EARLY_ACCESS = 0
+    CURRENT_ISSUE = 1
+    PAST_ISSUE = 2
+
     entry_number = StringField(default='0')
     year = IntField(required=True)
-    issue_number = IntField(required=True)
-    is_current = BooleanField(default=True)
+    number = IntField(required=True)
     journal_reference = ReferenceField(Journal)
+    status = IntField(required=True)
 
     def __str__(self):
         return 'Issue ' + str(self.issue_number) + ' / ' + str(self.year)
@@ -28,7 +32,7 @@ class Article(Document):
     NEED_FURTHER = 2
     IMPORTANT = 3
 
-    entry_number = IntField(required=True, primary_key=True)
+    entry_number = StringField(required=True, primary_key=True)
     title = StringField(required=True)
     author = StringField()
     journal = StringField()

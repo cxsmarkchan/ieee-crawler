@@ -10,19 +10,17 @@ from app import logger
 from app.ieee.citation import CitationLoader
 
 
-class JournalCrawler:
-    INIT_ARTICLE_PER_PAGE = 25
+class IEEECrawler:
+    def __init__(self):
+        pass
 
-    def __init__(self, journal_number):
-        self.__journal_number = str(journal_number)
-        self.__current_issue_file = \
-            'out/' + self.__journal_number + '_current_issue.txt'
-        self.__early_access_file = \
-            'out/' + self.__journal_number + '_early_access.txt'
-        self.__new_article_file = \
-            'out/' + self.__journal_number + '_new_articles.txt'
+    @staticmethod
+    def get_article(article_number):
+        return ArticleCrawler(article_number)
 
-        self.__journal = self.get_journal_object(journal_number)
+    @staticmethod
+    def get_journal(journal_number):
+        return JournalCrawler(journal_number)
 
     @staticmethod
     def get_journal_object(journal_number):
@@ -48,107 +46,193 @@ class JournalCrawler:
 
         return journal
 
-    def get_current_issue(self, to_file=False):
-        url = 'http://ieeexplore.ieee.org/xpl/mostRecentIssue.jsp'
-        numbers = self.get_article_numbers(url)
-        return self.get_articles(
-            numbers,
-            self.__current_issue_file if to_file else None
-        )
 
-    def get_early_access(self, to_file=False):
-        url = 'http://ieeexplore.ieee.org/xpl/tocresult.jsp'
-        issue_number = self.get_early_access_number()
-        numbers = self.get_article_numbers(url, issue_number=issue_number)
-        return self.get_articles(
-            numbers,
-            self.__early_access_file if to_file else None
-        )
+class JournalCrawler:
+    def __init__(self, journal):
+        if isinstance(journal, Journal):
+            self.__journal = journal
+        else:
+            self.__journal = IEEECrawler.get_journal_object(str(journal))
 
-    def get_new_articles(self, to_file=False):
-        url = 'http://ieeexplore.ieee.org/xpl/tocresult.jsp'
-        numbers = self.get_article_numbers(url, skip_exists=True)
-        return self.get_articles(
-            numbers,
-            self.__new_article_file if to_file else None
-        )
+    def __eq__(self, other):
+        return isinstance(other, JournalCrawler) \
+                and self.__journal == other.__journal
 
-    def update_current_issue_information(self):
-        '''
-        check whether the current issue is updated.
-        if updated, update the number of the last issue before current issue.
-        :return: [Year, Issue, Whether Updated]
-        '''
+    @property
+    def entry_number(self):
+        return self.__journal.entry_number
+
+    @property
+    def name(self):
+        return self.__journal.name
+
+    def get_current_issue(self):
         url = 'http://ieeexplore.ieee.org/xpl/mostRecentIssue.jsp'
         payload = {
-            'punumber': self.__journal_number
+            'punumber': self.__journal.entry_number
         }
         r = requests.get(url, params=payload)
 
         query = PyQuery(r.text)
         text = query('#jrnl-issue-hdr h2').text().strip()
-
-        logger.debug(text)
-        logger.debug(text[-4:])
-        logger.debug(text[6])
-
         current_year = int(text[-4:])
         issue_number = int(text[6])
 
         try:
             current_issue = Issue.objects.get(
                 journal_reference=self.__journal,
-                is_current=True
+                status=Issue.CURRENT_ISSUE
             )
             if current_issue.year == current_year \
-                    and current_issue.issue_number == issue_number:
+                    and current_issue.number == issue_number:
                 logger.info('Current issue has not been updated')
-                return current_year, issue_number, False
+                return IssueCrawler(current_issue)
             else:
                 logger.info('Current issue need to be updated')
                 query_text = '#pi-%d li:eq(%d) a' % \
-                             (current_issue.year, current_issue.issue_number - 1)
-                logger.debug('Finding url of the past issues via jquery: ' + query_text)
+                             (current_issue.year, current_issue.number - 1)
                 url = query(query_text).attr('href')
                 current_issue.entry_number = re.search('(?<=isnumber=)[0-9]+', url).group(0)
-                logger.debug('entry_number:' + current_issue.entry_number)
-                current_issue.is_current = False
+                current_issue.status = Issue.PAST_ISSUE
                 current_issue.save()
         except DoesNotExist:
             logger.info('Current issue does not exist in database')
-            pass
 
         # does not exist or updated
         current_issue = Issue()
+        current_issue.entry_number = 'current_' + self.__journal.entry_number
         current_issue.year = current_year
-        current_issue.issue_number = issue_number
+        current_issue.number = issue_number
         current_issue.journal_reference = self.__journal
+        current_issue.status = Issue.CURRENT_ISSUE
         current_issue.save()
         logger.info('Current issue updated')
-        return current_year, issue_number, True
+        return IssueCrawler(current_issue)
 
-    def get_early_access_number(self):
-        url = 'http://ieeexplore.ieee.org/xpl/RecentIssue.jsp'
-        payload = {
-            'punumber': self.__journal_number
-        }
-        r = requests.get(url, params=payload)
+    def get_early_access(self):
+        try:
+            issue = Issue.objects.get(
+                journal_reference=self.__journal,
+                status=Issue.EARLY_ACCESS
+            )
+            return IssueCrawler(issue)
+        except DoesNotExist:
+            issue = Issue()
 
-        query = PyQuery(r.text)
-        issue_url = query('#nav-article li:eq(2) a').attr('href')
-        return issue_url.split('=')[1]
+            url = 'http://ieeexplore.ieee.org/xpl/RecentIssue.jsp'
+            payload = {
+                'punumber': self.__journal.entry_number
+            }
+            r = requests.get(url, params=payload)
+            query = PyQuery(r.text)
+            url = query('#nav-article li:eq(2) a').attr('href')
 
-    def get_article_numbers(self, url, issue_number=None, skip_exists=False):
-        journal_number = self.__journal_number
+            issue.entry_number = re.search('(?<=isnumber=)[0-9]+', url).group(0)
+            issue.year = 0
+            issue.number = 0
+            issue.status = Issue.EARLY_ACCESS
+            issue.is_current = False
+            issue.journal_reference = self.__journal
+            issue.save()
 
-        logger.info('Obtaining article numbers')
+            return IssueCrawler(issue)
+
+    def get_past_issue(self, year, number):
+        try:
+            issue = Issue.objects.get(
+                journal_reference=self.__journal,
+                year=year,
+                number=number
+            )
+            return IssueCrawler(issue)
+        except DoesNotExist:
+            issue = Issue()
+            issue.year = year
+            issue.number = number
+            issue.journal_reference = self.__journal
+            issue.status = Issue.PAST_ISSUE
+
+            url = 'http://ieeexplore.ieee.org/xpl/RecentIssue.jsp'
+            payload = {
+                'punumber': self.__journal.entry_number
+            }
+            r = requests.get(url, params=payload)
+            query = PyQuery(r.text)
+
+            query_text = '#pi-%d li:eq(%d) a' % \
+                         (issue.year, issue.number - 1)
+            url = query(query_text).attr('href')
+            issue.entry_number = re.search('(?<=isnumber=)[0-9]+', url).group(0)
+
+            issue.save()
+
+            return IssueCrawler(issue)
+
+
+class IssueCrawler:
+    INIT_ARTICLE_PER_PAGE = 25
+
+    def __init__(self, issue):
+        if isinstance(issue, Issue):
+            self.__issue = issue
+        else:
+            self.__issue = Issue.objects.get(entry_number=issue)
+        self.__journal = issue.journal_reference
+
+    def __eq__(self, other):
+        return isinstance(other, IssueCrawler) \
+               and self.__issue == other.__issue
+
+    @property
+    def entry_number(self):
+        return self.__issue.entry_number
+
+    @property
+    def journal_name(self):
+        return self.__journal.name
+
+    @property
+    def year(self):
+        return self.__issue.year
+
+    @property
+    def number(self):
+        return self.__issue.number
+
+    @property
+    def status(self):
+        return self.__issue.status
+
+    def update(self):
+        numbers = self.crawl_article_numbers()
+        self.crawl_articles(numbers)
+
+    def get_article_brief(self):
+        articles = Article.objects.filter(issue_reference=self.__issue).order_by('title')
+        brief = []
+        for article in articles:
+            brief.append({
+                'entry_number': article.entry_number,
+                'title': article.title,
+                'status': article.status
+            })
+
+        return brief
+
+    def crawl_article_numbers(self):
+        journal_number = self.__journal.entry_number
 
         payload = {
             'punumber': journal_number
         }
 
-        if issue_number:
-            payload['isnumber'] = issue_number
+        if self.__issue.status == Issue.CURRENT_ISSUE:
+            url = 'http://ieeexplore.ieee.org/xpl/mostRecentIssue.jsp'
+        else:
+            url = 'http://ieeexplore.ieee.org/xpl/tocresult.jsp'
+            payload['isnumber'] = self.__issue.entry_number
+
+        logger.info('Obtaining article numbers:' + url)
 
         r = None
         num_try = 1
@@ -167,7 +251,7 @@ class JournalCrawler:
             return []
 
         query = PyQuery(r.text)
-        number_of_articles = self.__get_number_of_article(query)
+        number_of_articles = self.__get_number_of_articles(query)
 
         numbers = []
 
@@ -195,25 +279,13 @@ class JournalCrawler:
 
             tmp_numbers = [elem.attrib['aria-describedby'].split(' ')[0].split('-')[3]
                            for elem in elems]
-            if skip_exists:
-                for number in tmp_numbers:
-                    try:
-                        Article.objects.get(article_number=number)
-                    except DoesNotExist:
-                        numbers.append(number)
-            else:
-                numbers.extend(tmp_numbers)
+            numbers.extend(tmp_numbers)
 
         logger.info('Article numbers obtained: %d articles' % number_of_articles)
 
         return numbers
 
-    @staticmethod
-    def get_articles(numbers, filename=None):
-        if filename:
-            with open(filename, 'w') as fid:
-                fid.write('')
-
+    def crawl_articles(self, numbers):
         citation_loader = CitationLoader(numbers)
         entries = citation_loader.get_bibtex()
         articles = {}
@@ -240,6 +312,7 @@ class JournalCrawler:
             article.keyword = entry['keyword'] if 'keyword' in entry else ''
             article.doi = entry['doi'] if 'doi' in entry else ''
             article.issn = entry['issn'] if 'issn' in entry else ''
+            article.issue_reference = self.__issue
 
             try:
                 article.save()
@@ -248,17 +321,92 @@ class JournalCrawler:
                 logger.info('Cannot connect to database, Article [%s] will not be saved.' % number)
             articles[number] = article
 
-            if filename:
-                with open(filename, 'a') as fid:
-                    fid.write('Entry Number: %s\n' % number)
-                    fid.write('Title: %s\n' % article.title)
-                    fid.write('Author %s\n' % article.author)
-                    fid.write('Abstract: %s\n' % article.abstract)
-                    fid.write('Keyword: %s\n' % article.keyword)
-                    fid.write('\n')
-
         return articles
 
     @staticmethod
-    def __get_number_of_article(query):
+    def __get_number_of_articles(query):
         return int(query('#results-blk .results-display b:eq(1)').text())
+
+
+class ArticleCrawler:
+    def __init__(self, article):
+        if isinstance(article, Article):
+            self.__article = article
+        else:
+            self.__article = Article.objects.get(entry_number=str(article))
+
+    def __eq__(self, other):
+        return isinstance(other, ArticleCrawler) \
+                   and self.__article == other.__article
+
+    @property
+    def entry_number(self):
+        return self.__article.entry_number
+
+    @property
+    def title(self):
+        return self.__article.title
+
+    @property
+    def author(self):
+        return self.__article.author
+
+    @property
+    def journal(self):
+        return self.__article.journal
+
+    @property
+    def year(self):
+        return self.__article.year
+
+    @property
+    def volume(self):
+        return self.__article.volume
+
+    @property
+    def number(self):
+        return self.__article.number
+
+    @property
+    def pages(self):
+        return self.__article.pages
+
+    @property
+    def abstract(self):
+        return self.__article.abstract
+
+    @property
+    def keyword(self):
+        return self.__article.keyword
+
+    @property
+    def doi(self):
+        return self.__article.doi
+
+    @property
+    def issn(self):
+        return self.__article.issn
+
+    @property
+    def status(self):
+        return self.__article.status
+
+    def bibtex(self):
+        return str(self.__article)
+
+    def entry(self):
+        return {
+            'entry_number': self.entry_number,
+            'title': self.title,
+            'author': self.author,
+            'journal': self.journal,
+            'year': self.year,
+            'volume': self.volume,
+            'number': self.number,
+            'pages': self.pages,
+            'abstract': self.abstract,
+            'keyword': self.keyword,
+            'doi': self.doi,
+            'issn': self.issn,
+            'status': self.status
+        }
