@@ -1,12 +1,17 @@
-from app.ieee.journal import JournalCrawler
+from app.ieee.journal import IEEECrawler
 import sys
 
 if __name__ == '__main__':
-    crawler = JournalCrawler(sys.argv[1])
+    crawler = IEEECrawler.get_journal(sys.argv[1])
     mode = sys.argv[2]
     if mode == 'current':
-        articles = crawler.get_current_issue(True)
+        issue = crawler.get_current_issue()
     elif mode == 'early':
-        articles = crawler.get_early_access(True)
-    elif mode == 'new':
-        articles = crawler.get_new_articles(True)
+        issue = crawler.get_early_access()
+
+    issue.update()
+    articles = issue.get_article_brief()
+
+    with open(sys.argv[3], 'w') as fid:
+        for article in articles:
+            fid.write(article['title'] + '\n')
