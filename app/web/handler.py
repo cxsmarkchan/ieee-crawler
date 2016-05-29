@@ -10,7 +10,9 @@ from ..ieee.journal import JournalController
 def handle_brief():
     issue_number = request.args.get('isnumber')
     issue = IssueController(issue_number)
-    return jsonify(issue.get_article_brief())
+    return jsonify({
+        'data': issue.get_article_brief()
+    })
 
 
 @web_blueprint.route('/journals', methods=['GET'])
@@ -22,7 +24,7 @@ def handle_journals():
             'entry_number': journal.entry_number,
             'name': journal.name
         })
-    return jsonify(resp)
+    return jsonify({'data': resp})
 
 
 @web_blueprint.route('/issues', methods=['GET'])
@@ -38,25 +40,33 @@ def handle_issues():
             'number': issue.number,
             'status': issue.status
         })
-    return jsonify(resp)
+    return jsonify({'data': resp})
 
 
-@web_blueprint.route('/unvisited', methods='GET')
+@web_blueprint.route('/unvisited', methods=['GET'])
 def handle_unvisited():
-    return jsonify(ArticleController.get_all_unvisited_brief())
+    return jsonify({
+        'data': ArticleController.get_all_unvisited_brief()
+    })
 
 
 @web_blueprint.route('/further', methods=['GET'])
 def handle_further():
-    return jsonify(ArticleController.get_all_need_further_brief())
+    return jsonify({
+        'data': ArticleController.get_all_need_further_brief()
+    })
 
 
 @web_blueprint.route('/important', methods=['GET'])
-def handle_further():
-    return jsonify(ArticleController.get_all_important_brief())
+def handle_important():
+    return jsonify({
+        'data': ArticleController.get_all_important_brief()
+    })
 
 
 @web_blueprint.route('/article', methods=['GET'])
 def handle_article():
     article_number = request.args.get('arnumber')
-    return jsonify(ArticleController(article_number).entry)
+    return jsonify({
+        'data': ArticleController(article_number).entry
+    })
