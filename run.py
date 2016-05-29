@@ -1,8 +1,8 @@
-from app.ieee.journal import IEEECrawler
+from app.ieee.controller import Controller
 import sys
 
 if __name__ == '__main__':
-    crawler = IEEECrawler.get_journal(sys.argv[1])
+    crawler = Controller.get_journal(sys.argv[1])
     mode = sys.argv[2]
     if mode == 'current':
         issue = crawler.get_current_issue()
