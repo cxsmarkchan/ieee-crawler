@@ -21,6 +21,7 @@ class TestJournalController(TestCase):
         issue.number = 2
         issue.year = 2016
         issue.status = Issue.CURRENT_ISSUE
+        issue.entry_number = 'current_5165411'
         issue.save()
 
         issue = Issue()
@@ -31,10 +32,33 @@ class TestJournalController(TestCase):
         issue.status = Issue.PAST_ISSUE
         issue.save()
 
+        issue = Issue()
+        issue.entry_number = '7042857'
+        issue.journal_reference = journal
+        issue.number = 2
+        issue.year = 2015
+        issue.status = Issue.PAST_ISSUE
+        issue.save()
+
+        issue = Issue()
+        issue.entry_number = '6991622'
+        issue.journal_reference = journal
+        issue.number = 1
+        issue.year = 2015
+        issue.status = Issue.PAST_ISSUE
+        issue.save()
+
     def tearDown(self):
         journal = Controller.get_journal_object(5165411)
         for issue in Issue.objects.filter(journal_reference=journal):
             issue.delete()
+
+    def test_get_all_issues(self):
+        issues = self.__crawler.get_all_issues()
+        self.assertEqual(issues[0].entry_number, 'current_5165411')
+        self.assertEqual(issues[1].entry_number, '7361791')
+        self.assertEqual(issues[2].entry_number, '7042857')
+        self.assertEqual(issues[3].entry_number, '6991622')
 
     def test_get_current_issue(self):
         current_issue = self.__crawler.get_current_issue()
