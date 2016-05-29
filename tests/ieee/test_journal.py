@@ -4,7 +4,7 @@ from mongoengine.connection import disconnect
 from app.ieee.controller import Controller
 from app.models import Issue
 
-disconnect('ieee_crawler')
+disconnect('default')
 connect('ieee_crawler_test')
 
 

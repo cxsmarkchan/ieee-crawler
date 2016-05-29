@@ -4,7 +4,7 @@ from app.models import Article
 from app.ieee.article import ArticleController
 
 
-disconnect('ieee_crawler')
+disconnect('default')
 connect('ieee_crawler_test')
 
 

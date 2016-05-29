@@ -12,7 +12,7 @@ hdr.setFormatter(formatter)
 logger.addHandler(hdr)
 logger.info('Logger initialized.')
 
-connect(db='ieee_crawler', alias='ieee_crawler')
+connect('ieee_crawler')
 logger.info('Database connected.')
 
 
