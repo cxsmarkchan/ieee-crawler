@@ -1,6 +1,11 @@
 from unittest import TestCase
+from mongoengine.connection import connect, disconnect
 from app.ieee.controller import Controller
 from app.models import Issue, Article
+
+
+disconnect('ieee_crawler')
+connect('ieee_crawler_test')
 
 
 class TestIssueCrawler(TestCase):

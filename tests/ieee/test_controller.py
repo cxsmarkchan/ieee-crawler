@@ -1,5 +1,10 @@
 from unittest import TestCase
+from mongoengine.connection import connect, disconnect
 from app.ieee.controller import Controller
+
+
+disconnect('ieee_crawler')
+connect('ieee_crawler_test')
 
 
 class TestContoller(TestCase):
