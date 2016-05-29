@@ -391,6 +391,20 @@ class ArticleCrawler:
     def status(self):
         return self.__article.status
 
+    @status.setter
+    def status(self, value):
+        self.__article.status = value
+        self.__article.save()
+
+    @property
+    def note(self):
+        return self.__article.note
+
+    @note.setter
+    def note(self, value):
+        self.__article.note = value
+        self.__article.save()
+
     def bibtex(self):
         return str(self.__article)
 

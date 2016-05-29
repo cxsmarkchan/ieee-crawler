@@ -46,6 +46,7 @@ class Article(Document):
     issn = StringField()
     status = IntField(required=True, default=UNVISITED)
     issue_reference = ReferenceField(Issue)
+    note = StringField(default='')
 
     def __str__(self):
         bib = BibDatabase()
