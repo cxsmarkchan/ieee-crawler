@@ -8,6 +8,15 @@ connect('ieee_crawler_test')
 
 
 class TestContoller(TestCase):
+    def setUp(self):
+        Controller.get_journal(5165411)
+        Controller.get_journal(59)
+
+    def test_get_all_journals(self):
+        journals = Controller.get_all_journals()
+        self.assertEqual(journals[0].entry_number, '5165411')
+        self.assertEqual(journals[1].entry_number, '59')
+
     def test_get_journal(self):
         journal = Controller.get_journal(5165411)
         self.assertEqual(journal.entry_number, '5165411')

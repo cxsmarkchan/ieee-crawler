@@ -9,9 +9,10 @@ class Controller:
         pass
 
     @staticmethod
-    def get_article(article_number):
-        from .article import ArticleController
-        return ArticleController(article_number)
+    def get_all_journals():
+        from .journal import JournalController
+        return [JournalController(journal)
+                for journal in Journal.objects.order_by('entry_number')]
 
     @staticmethod
     def get_journal(journal_number):
@@ -41,3 +42,8 @@ class Controller:
             journal.save()
 
         return journal
+
+    @staticmethod
+    def get_article(article_number):
+        from .article import ArticleController
+        return ArticleController(article_number)

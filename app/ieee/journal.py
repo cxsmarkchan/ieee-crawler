@@ -17,7 +17,7 @@ class JournalController:
 
     def __eq__(self, other):
         return isinstance(other, JournalController) \
-                and self.__journal == other.__journal
+               and self.__journal == other.__journal
 
     @property
     def entry_number(self):
@@ -26,6 +26,11 @@ class JournalController:
     @property
     def name(self):
         return self.__journal.name
+
+    def get_all_issues(self):
+        issues = Issue.objects.filter(journal_reference=self.__journal) \
+            .order_by('-year', '-number')
+        return [IssueController(issue) for issue in issues]
 
     def get_current_issue(self):
         url = 'http://ieeexplore.ieee.org/xpl/mostRecentIssue.jsp'
@@ -128,9 +133,3 @@ class JournalController:
             issue.save()
 
             return IssueController(issue)
-
-
-
-
-
-
