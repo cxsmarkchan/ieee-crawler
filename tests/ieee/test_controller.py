@@ -3,7 +3,7 @@ from mongoengine.connection import connect, disconnect
 from app.ieee.controller import Controller
 
 
-disconnect('ieee_crawler')
+disconnect('default')
 connect('ieee_crawler_test')
 
 
