@@ -16,8 +16,8 @@ class IssueController:
         if isinstance(issue, Issue):
             self.__issue = issue
         else:
-            self.__issue = Issue.objects.get(entry_number=issue)
-        self.__journal = issue.journal_reference
+            self.__issue = Issue.objects.get(entry_number=str(issue))
+        self.__journal = self.__issue.journal_reference
 
     def __eq__(self, other):
         return isinstance(other, IssueController) \

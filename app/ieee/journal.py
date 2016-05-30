@@ -97,7 +97,6 @@ class JournalController:
             issue.year = 0
             issue.number = 0
             issue.status = Issue.EARLY_ACCESS
-            issue.is_current = False
             issue.journal_reference = self.__journal
             issue.save()
 
