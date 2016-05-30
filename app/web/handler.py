@@ -70,3 +70,19 @@ def handle_article():
     return jsonify({
         'data': ArticleController(article_number).entry
     })
+
+
+@web_blueprint.route('/note', methods=['POST'])
+def handle_note():
+    article_number = request.form['arnumber']
+    note = request.form['note']
+    article = ArticleController(article_number)
+    article.note = note
+
+
+@web_blueprint.route('/status', methods=['POST'])
+def handle_status():
+    article_number = request.form['arnumber']
+    status = int(request.form['status'])
+    article = ArticleController(article_number)
+    article.status = status
