@@ -23,7 +23,7 @@ class Issue(Document):
     status = IntField(required=True)
 
     def __str__(self):
-        return 'Issue ' + str(self.issue_number) + ' / ' + str(self.year)
+        return 'Issue ' + str(self.number) + ' / ' + str(self.year)
 
 
 class Article(Document):
