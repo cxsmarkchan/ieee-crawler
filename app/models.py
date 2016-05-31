@@ -45,6 +45,7 @@ class Article(Document):
     doi = StringField()
     issn = StringField()
     status = IntField(required=True, default=UNVISITED)
+    downloaded = BooleanField(required=True, default=False)
     issue_reference = ReferenceField(Issue)
     note = StringField(default='')
 

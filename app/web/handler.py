@@ -1,9 +1,11 @@
-from flask import request, jsonify
+import os
+from flask import request, jsonify, send_file, url_for, make_response
 from . import web_blueprint
 from ..ieee.issue import IssueController
 from ..ieee.controller import Controller
 from ..ieee.article import ArticleController
 from ..ieee.journal import JournalController
+from . import download_scheduler
 
 
 @web_blueprint.route('/brief', methods=['GET'])
@@ -96,3 +98,28 @@ def handle_status():
     article = ArticleController(article_number)
     article.status = status
     return jsonify({'message': 'Success'})
+
+
+@web_blueprint.route('/download', methods=['POST'])
+def handle_download():
+    article_number = request.form['arnumber']
+    article = ArticleController(article_number)
+    if not article.downloaded:
+        download_scheduler.download(article_number)
+    return jsonify({'message': 'Success'})
+
+
+@web_blueprint.route('/pdf', methods=['GET'])
+def handle_pdf():
+    article_number = request.args.get('arnumber')
+
+    path = os.path.join(
+        os.getcwd(),
+        'pdf',
+        article_number + '.pdf'
+    )
+
+    try:
+        return send_file(path, attachment_filename=article_number + '.pdf')
+    except Exception as e:
+        return make_response(str(e), 200)

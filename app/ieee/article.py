@@ -1,3 +1,6 @@
+import requests
+from pyquery import PyQuery
+from .. import logger
 from ..models import Article
 
 
@@ -120,6 +123,10 @@ class ArticleController:
         self.__article.save()
 
     @property
+    def downloaded(self):
+        return self.__article.downloaded
+
+    @property
     def bibtex(self):
         return str(self.__article)
 
@@ -139,5 +146,27 @@ class ArticleController:
             'doi': self.doi,
             'issn': self.issn,
             'status': self.status,
-            'note': self.note
+            'note': self.note,
+            'downloaded': self.downloaded
         }
+
+    def download(self):
+        frame = requests.get(
+            url='http://ieeexplore.ieee.org/stamp/stamp.jsp',
+            params={
+                'arnumber': self.entry_number
+            }
+        )
+        query = PyQuery(frame.text)
+        url = query('frame:eq(1)').attr('src')
+
+        logger.info('Downloading:' + url)
+
+        r = requests.get(url)
+        with open('pdf/' + self.entry_number + '.pdf', 'wb') as fid:
+            fid.write(r.content)
+
+        logger.info('Downloaded: ' + self.entry_number)
+
+        self.__article.downloaded = True
+        self.__article.save()

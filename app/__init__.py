@@ -1,5 +1,6 @@
 from mongoengine import connect
 from flask import Flask
+from flask_socketio import SocketIO
 import logging
 
 
@@ -15,10 +16,13 @@ logger.info('Logger initialized.')
 connect('ieee_crawler')
 logger.info('Database connected.')
 
+socketio = SocketIO()
+
 
 def create_app():
     # flask app
     app = Flask(__name__)
+    socketio.init_app(app)
 
     from .web import web_blueprint
 
