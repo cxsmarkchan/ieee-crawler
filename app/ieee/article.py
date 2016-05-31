@@ -13,55 +13,45 @@ class ArticleController:
                    and self.__article == other.__article
 
     @staticmethod
-    def get_all_unvisited():
-        articles = Article.objects.filter(status=Article.UNVISITED).order_by('title')
+    def get_all_by_status(status):
+        articles = Article.objects.filter(status=status).order_by('title')
         return [ArticleController(article) for article in articles]
+
+    @staticmethod
+    def get_brief_by_status(status):
+        articles = Article.objects.filter(status=status).order_by('title')
+        brief = []
+        for article in articles:
+            brief.append({
+                'entry_number': article.entry_number,
+                'title': article.title,
+                'status': article.status
+            })
+        return brief
+
+    @staticmethod
+    def get_all_unvisited():
+        return ArticleController.get_all_by_status(Article.UNVISITED)
 
     @staticmethod
     def get_all_unvisited_brief():
-        articles = Article.objects.filter(status=Article.UNVISITED).order_by('title')
-        brief = []
-        for article in articles:
-            brief.append({
-                'entry_number': article.entry_number,
-                'title': article.title,
-                'status': article.status
-            })
-        return brief
+        return ArticleController.get_brief_by_status(Article.UNVISITED)
 
     @staticmethod
     def get_all_need_further():
-        articles = Article.objects.filter(status=Article.NEED_FURTHER).order_by('title')
-        return [ArticleController(article) for article in articles]
+        return ArticleController.get_all_by_status(Article.NEED_FURTHER)
 
     @staticmethod
     def get_all_need_further_brief():
-        articles = Article.objects.filter(status=Article.NEED_FURTHER).order_by('title')
-        brief = []
-        for article in articles:
-            brief.append({
-                'entry_number': article.entry_number,
-                'title': article.title,
-                'status': article.status
-            })
-        return brief
+        return ArticleController.get_brief_by_status(Article.NEED_FURTHER)
 
     @staticmethod
     def get_all_important():
-        articles = Article.objects.filter(status=Article.IMPORTANT).order_by('title')
-        return [ArticleController(article) for article in articles]
+        return ArticleController.get_all_by_status(Article.IMPORTANT)
 
     @staticmethod
     def get_all_important_brief():
-        articles = Article.objects.filter(status=Article.IMPORTANT).order_by('title')
-        brief = []
-        for article in articles:
-            brief.append({
-                'entry_number': article.entry_number,
-                'title': article.title,
-                'status': article.status
-            })
-        return brief
+        return ArticleController.get_brief_by_status(Article.IMPORTANT)
 
     @property
     def entry_number(self):

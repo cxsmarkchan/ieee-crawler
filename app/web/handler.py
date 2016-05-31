@@ -64,6 +64,14 @@ def handle_important():
     })
 
 
+@web_blueprint.route('/all', methods=['GET'])
+def handle_all():
+    status = int(request.args.get('status'))
+    return jsonify({
+        'data': ArticleController.get_brief_by_status(status)
+    })
+
+
 @web_blueprint.route('/article', methods=['GET'])
 def handle_article():
     article_number = request.args.get('arnumber')
@@ -78,6 +86,7 @@ def handle_note():
     note = request.form['note']
     article = ArticleController(article_number)
     article.note = note
+    return jsonify({'message': 'Success'})
 
 
 @web_blueprint.route('/status', methods=['POST'])
@@ -86,3 +95,4 @@ def handle_status():
     status = int(request.form['status'])
     article = ArticleController(article_number)
     article.status = status
+    return jsonify({'message': 'Success'})
