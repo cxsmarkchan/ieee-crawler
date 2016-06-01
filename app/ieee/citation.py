@@ -1,5 +1,6 @@
 import requests
 import bibtexparser
+import time
 
 
 class CitationLoader:
@@ -28,6 +29,9 @@ class CitationLoader:
             'citations-format': 'citation-abstract',
             'download-format': 'download-bibtex',
         }
+
+        # prevent from locked by tsinghua library
+        time.sleep(5)
 
         r = requests.post(url=url, headers=headers, data=data)
         return r.text
