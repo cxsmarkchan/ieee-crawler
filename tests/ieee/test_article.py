@@ -65,7 +65,8 @@ class TestArticleController(TestCase):
             'doi': '10.1109/TSG.2016.2519541',
             'issn': '1949-3053',
             'status': Article.VISITED,
-            'note': 'abc'
+            'note': 'abc',
+            'downloaded': False
         })
 
     def test_note(self):
