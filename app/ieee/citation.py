@@ -31,7 +31,7 @@ class CitationLoader:
         }
 
         # prevent from locked by tsinghua library
-        time.sleep(5)
+        time.sleep(len(self.article_numbers))
 
         r = requests.post(url=url, headers=headers, data=data)
         return r.text

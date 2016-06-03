@@ -6,5 +6,4 @@ out/*
 !out/.gitkeep
 db/*
 !db/.gitkeep
-pdf/*
-!pdf/.gitkeep
+!db/pdf/.gitkeep

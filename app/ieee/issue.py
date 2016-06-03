@@ -105,7 +105,7 @@ class IssueController:
                     try:
                         logger.info('Page %d: Trying %d time(s)' % (i + 1, num_try))
                         # prevent from locked by Tsinghua library
-                        time.sleep(5)
+                        time.sleep(30)
                         r = requests.get(url=url, params=payload)
                         break
                     except Timeout:

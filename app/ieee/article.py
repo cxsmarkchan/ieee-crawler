@@ -28,7 +28,8 @@ class ArticleController:
             brief.append({
                 'entry_number': article.entry_number,
                 'title': article.title,
-                'status': article.status
+                'status': article.status,
+                'downloaded': article.downloaded
             })
         return brief
 
@@ -163,7 +164,7 @@ class ArticleController:
         logger.info('Downloading:' + url)
 
         r = requests.get(url)
-        with open('pdf/' + self.entry_number + '.pdf', 'wb') as fid:
+        with open('db/pdf/' + self.entry_number + '.pdf', 'wb') as fid:
             fid.write(r.content)
 
         logger.info('Downloaded: ' + self.entry_number)

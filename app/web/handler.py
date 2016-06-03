@@ -115,6 +115,7 @@ def handle_pdf():
 
     path = os.path.join(
         os.getcwd(),
+        'db',
         'pdf',
         article_number + '.pdf'
     )
