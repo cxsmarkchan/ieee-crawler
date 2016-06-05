@@ -55,7 +55,8 @@ class IssueController:
             brief.append({
                 'entry_number': article.entry_number,
                 'title': article.title,
-                'status': article.status
+                'status': article.status,
+                'downloaded': article.downloaded
             })
 
         return brief
